@@ -1,0 +1,427 @@
+<div class="separator" style="clear: both; text-align: center;"><a
+	href="https://1.bp.blogspot.com/-QathCVxoFdI/YKDCSPZPd2I/AAAAAAAAATA/se6zsKdjIAUYzrVuBQlbgsXDUC3pJ19uQCLcBGAsYHQ/s287/logo.png"
+	style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="236" data-original-width="287"
+                                                      height="165"
+                                                      src="https://1.bp.blogspot.com/-QathCVxoFdI/YKDCSPZPd2I/AAAAAAAAATA/se6zsKdjIAUYzrVuBQlbgsXDUC3pJ19uQCLcBGAsYHQ/w201-h165/logo.png"
+                                                      width="201"/></a></div><br/>
+<div><br/></div><h1 class="western">Rappels : architecture «&nbsp;Micro-services&nbsp;»&nbsp;</h1>
+<div>L’approche
+	par micro service consiste à découper un problème en plusieurs
+	applications.&nbsp;
+</div>
+<div class="separator" style="clear: both; text-align: center;"><a
+	href="https://1.bp.blogspot.com/-DrPHbdlY2VQ/YLh3bBkFa9I/AAAAAAAAATg/-4OlNnanZrIQm58vuVxkgx6iQZp0ErOrwCLcBGAsYHQ/s805/base%2Bmicro-service.png"
+	style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="349" data-original-width="805"
+                                                      height="219"
+                                                      src="https://1.bp.blogspot.com/-DrPHbdlY2VQ/YLh3bBkFa9I/AAAAAAAAATg/-4OlNnanZrIQm58vuVxkgx6iQZp0ErOrwCLcBGAsYHQ/w503-h219/base%2Bmicro-service.png"
+                                                      width="503"/></a></div><br/>
+<div>Chaque micro service va s’enregistrer au démarrage auprès du service d’enregistrement («&nbsp;registration service&nbsp;»).
+	Il y enregistre ses références&nbsp;:
+</div>
+<div>
+	<ul>
+		<ul>
+			<li>Nom</li>
+			<li>Adresse IP</li>
+			<li>Port d'écoute</li>
+		</ul>
+	</ul>
+</div>
+<div><p>Le
+	service d’enregistrement va configurer les routes. Chaque micro-service envoie périodiquement à la gateway un signal
+	pour lui dire qu'il est toujours en vie.</p>
+	<p>Il y a aussi besoin d’un service proxy («&nbsp;gateway&nbsp;»).
+		Toutes les requêtes externes comme les requêtes «&nbsp;front-end&nbsp;»
+		vont être à destination de ce service proxy. Le service «&nbsp;proxy&nbsp;»
+		va alors se charger de rediriger la requête vers le service qui va
+		exécuter les traitements. Le «&nbsp;proxy&nbsp;» va interroger le
+		service d’enregistrement pour récupérer l’URL de la route pour
+		contacter le service qui exécutera l’action demandée par la
+		requête.</p>
+	<p>Au lieu de créer un fichier de configuration pour chaque
+		micro-service, on va plutôt centraliser la configuration dans un
+		service de configuration. Au démarrage chaque micro-service va
+		interroger le service de configuration qui lui retournera sa
+		configuration.</p>
+	<p>À noter que le proxy peut réaliser aussi des traitements sur la
+		requête reçue&nbsp;:</p>
+	<div>
+		<ul>
+			<ul>
+				<li>Tests</li>
+				<li>Filtrage</li>
+				<li>Ajouter des informations dans le header</li>
+				<li>Gérer la sécurité</li>
+				<li>Gérer le cache</li>
+			</ul>
+		</ul>
+	</div>
+	<p>Le service proxy peut aussi faire de la répartition de charge
+		(«&nbsp;loadbalancer&nbsp;»).</p>
+	<h1 class="western">Cinématique des appels de services</h1></div>
+<div><br/></div>
+<div class="separator" style="clear: both; text-align: center;"><a
+	href="https://1.bp.blogspot.com/-CvGr-iQRnOY/YLh4fG28doI/AAAAAAAAATo/GaVk-ocTb7cPOyFoSfMpDoNexyN77ZxtwCLcBGAsYHQ/s829/cin%25C3%25A9matique.png"
+	style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="264" data-original-width="829"
+                                                      height="199"
+                                                      src="https://1.bp.blogspot.com/-CvGr-iQRnOY/YLh4fG28doI/AAAAAAAAATo/GaVk-ocTb7cPOyFoSfMpDoNexyN77ZxtwCLcBGAsYHQ/w628-h199/cin%25C3%25A9matique.png"
+                                                      width="628"/></a></div><br/>
+<div><br/></div>
+<div><h2 style="line-height: 100%; margin-bottom: 0cm; text-align: left;">Exemple de mise en œuvre&nbsp;</h2>
+	<div><br/></div>
+	<div><p align="left" style="line-height: 100%; margin-bottom: 0cm;">
+	<span style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span style="color: black;"><span
+		style="font-family: Times New Roman;"><span style="font-size: 14pt;"><u>A
+	– 1ère SOLUTION : CRÉATION D'UN GATEWAY</u></span></span></span></span>
+	</p></div>
+	<div><p><b>1. Configuration des routes&nbsp;</b></p>
+		<p><u>Configuration statique</u></p>
+		<p>Les routes au niveau du service d'enregistrement se font ici de manière statique dans le fichier de le
+			fichier de configuration.</p>
+		<table cellpadding="0" cellspacing="0" style="width: 643px;">
+			<colgroup>
+				<col width="434"></col>
+				<col width="208"></col>
+			</colgroup>
+			<tbody>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="434"><p><span style="color: #1d1c1d;"><span
+					style="font-family: Courier New, monospace;"><span style="font-size: 9pt;">spring.cloud.discovery.enabled=false</span></span></span>
+				</p></td>
+				<td style="border: none; padding: 0cm;" width="208"><p align="left"><span style="color: black;"><span
+					style="font-family: Times New Roman;"><span style="font-size: 10pt;">Définition des routes de manière statiques</span></span></span>
+				</p></td>
+			</tr>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="434"><p><span style="color: #1d1c1d;"><span
+					style="font-family: Courier New, monospace;"><span style="font-size: 9pt;">spring.cloud.gateway.routes.id=1</span></span></span><span
+					style="color: #1d1c1d;">&nbsp; &nbsp;&nbsp;</span></p></td>
+				<td style="border: none; padding: 0cm;" width="208"><p align="left"><span style="color: black;"><span
+					style="font-family: Times New Roman;"><span
+					style="font-size: 10pt;">Identifiant unique de la route</span></span></span></p></td>
+			</tr>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="434"><p align="left"><span
+					style="font-family: Courier New, monospace;"><span style="font-size: 9pt;">spring.cloud.gateway.routes.uri=http://localhost:8081/</span></span>
+				</p></td>
+				<td style="border: none; padding: 0cm;" width="208"><p align="left"><span style="color: black;"><span
+					style="font-family: Times New Roman;"><span style="font-size: 10pt;">URI de destination de la route, c'est à dire l'adresse du micro service client (ou la requête va être envoyée).</span></span></span>
+				</p></td>
+			</tr>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="434"><p align="left"><span
+					style="font-family: Courier New, monospace;"><span style="font-size: 9pt;">spring.cloud.gateway.routes.predicates.Path=/client-test/**</span></span>
+				</p></td>
+				<td style="border: none; padding: 0cm;" width="208"><p align="left"><span style="font-size: 9pt;">Condition que doit satisfaire pour router la route. Ici le prédicat "Path" qui ne laisse passer les requêtes contenant "client-test".</span>
+				</p></td>
+			</tr>
+			</tbody>
+		</table>
+		<p><u>Configuration dynamique</u></p>
+		<p>Il faut créer la méthode suivante à partir du "pattern" builder comme ci illustré dans l'exemple
+			ci-dessous:</p>
+		<p><br/></p>
+		<p align="left" style="line-height: 100%; margin-bottom: 0cm;">
+			<u><span style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span style="color: black;"><span
+				style="font-family: Times New Roman;"><span style="font-size: 14pt;">B
+	– </span></span></span></span><span style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span
+				style="color: black;"><span style="font-family: Times New Roman;"><span
+				style="font-size: 14pt;">2</span></span></span></span><span
+				style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span style="color: black;"><span
+				style="font-family: Times New Roman;"><span style="font-size: 14pt;">è</span></span></span></span><span
+				style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span style="color: black;"><span
+				style="font-family: Times New Roman;"><span style="font-size: 14pt;">m</span></span></span></span><span
+				style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span style="color: black;"><span
+				style="font-family: Times New Roman;"><span style="font-size: 14pt;">e
+	solution : </span></span></span></span><span style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span
+				style="color: black;"><span style="font-family: Times New Roman;"><span style="font-size: 14pt;">UTILISATION
+	DE NETFLIX EREKA</span></span></span></span></u>
+		</p>
+		<p align="left" style="line-height: 100%; margin-bottom: 0cm;"><span
+			style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span style="color: black;"><span
+			style="font-family: Times New Roman;"><span style="font-size: 14pt;"><br/></span></span></span></span></p>
+	</div>
+	<div><b>1. Création d'un service d'enregistrement et de gateway</b></div>
+	<div>Pour le service "Proxy" nous pourrions utiliser "Zuul" mais comme nous l'avons vu pécédenement "Eureka" est
+		plus performant. Configuration de Spring initaliser&nbsp;:&nbsp;<a href="https://start.spring.io/"><span
+			style="text-decoration-line: none;">https://start.spring.io/</span></a>. Juste sélectionner la dépendance&nbsp;
+		« spring-cloud-netflix Eureka Server&nbsp;<strong><span
+			style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span style="color: black;"><span
+			face="Metropolis, Arial, sans-serif"><span style="font-size: 12pt;"><span
+			style="font-weight: normal;">»</span></span></span></span></span></strong></div>
+	<div>
+		<div class="separator" style="clear: both; text-align: center;"><a
+			href="https://1.bp.blogspot.com/-GxWv_iujTdI/YLieGxCeUwI/AAAAAAAAATw/4YWlywvyMP4zxqNFHRVi8DWiE-VH3xYwACLcBGAsYHQ/s1667/conf-serveur.png"
+			style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="743"
+		                                                      data-original-width="1667" height="286"
+		                                                      src="https://1.bp.blogspot.com/-GxWv_iujTdI/YLieGxCeUwI/AAAAAAAAATw/4YWlywvyMP4zxqNFHRVi8DWiE-VH3xYwACLcBGAsYHQ/w640-h286/conf-serveur.png"
+		                                                      width="640"/></a></div>
+		<p>Ajout
+			de l’annotation «&nbsp;<span style="background-color: #fcff01;">@EnableEurekaServer</span>&nbsp;» dans le
+			«&nbsp;main&nbsp;» suffit à l’activer le «&nbsp;service registry&nbsp;»&nbsp;:</p></div>
+	<div>
+		<script src="https://gist.github.com/jeromerocher/8469489295ee34d54e144962c8026612.js"></script>
+	</div>
+	<div><u><br/></u></div>
+	<div><u>Configuration de la Gateway et service d'enregistrement («&nbsp;application.properties&nbsp;») :</u></div>
+	<div>
+		<table cellpadding="0" cellspacing="0" style="width: 100%;">
+			<colgroup>
+				<col width="128*"></col>
+
+				<col width="128*"></col>
+
+			</colgroup>
+			<tbody>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="50%"><p
+					style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+					<span style="color: black;"><span style="font-family: Courier New, monospace;"><span
+						style="font-size: 9pt;"><span
+						style="color: #1d1c1d;">server.port=8761</span></span></span></span></p>
+				</td>
+				<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+				                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+	<span style="color: black;"><span style="font-family: Times New Roman;"><span style="font-size: 10pt;">Port d'écoute de l'application d'enregistrement des services et de la gateway. C'est
+	une bonne pratique de configurer sur un port différent de celui
+	de la production lors d’une utilisation locale.</span></span></span></p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+				                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+					<span style="color: black;"><span style="font-family: Courier New, monospace;"><span
+						style="font-size: 9pt;">eureka.client.register-with-eureka=false</span></span></span></p>
+				</td>
+				<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+				                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+	<span style="color: black;"><span style="font-family: Times New Roman;"><span style="font-size: 10pt;">Par
+	défaut, ce serveur est lui même un micro service. Donc il essaie de s’enregistrer auprès de
+	lui-même. Il faut donc désactiver ce comportement.</span></span></span></p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+				                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+					<span style="color: black;"><span style="font-family: Courier New, monospace;"><span
+						style="font-size: 9pt;">eureka.client.fetch-registry=false</span></span></span></p>
+				</td>
+				<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+				                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+					<span style="color: black;"><span style="font-family: Times New Roman;"><span
+						style="font-size: 10pt;">Nous autorisons l'affichage des clients locaux. C'est à dire les clients installé sur le même serveur que la gateway.</span></span></span>
+				</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+				                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+					<span style="color: black;"><span style="font-family: Courier New, monospace;"><span
+						style="font-size: 9pt;">logging.level.com.netflix.eureka=OFF</span></span></span></p>
+					<p align="left" style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+						<span style="color: black;"><span style="font-family: Courier New, monospace;"><span
+							style="font-size: 9pt;">logging.level.com.netflix.discovery=OFF</span></span></span></p>
+				</td>
+				<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+				                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+	<span style="color: black;"><span style="font-family: Times New Roman;"><span style="font-size: 10pt;">Nous
+	désactivons les logs.</span></span></span></p>
+				</td>
+			</tr>
+			</tbody>
+		</table>
+		<br/></div>
+	<div><u>Rappel : générer puis lancer le service</u>&nbsp;</div>
+</div>
+<p></p><span style="font-family: Courier New;">mvn
+	clean install</span><p></p><p><span style="font-family: Courier New, monospace;">java
+	-jar
+	C:\java\poc\Eureka\service-registration-and-discovery-service\target\service-registration-and-discovery-service-0.0.1-SNAPSHOT.jar</span>
+</p><p>&nbsp;ou&nbsp;&nbsp;</p><p><span style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span
+	style="color: black;"><span style="font-family: Courier New, monospace;"><span style="font-size: 12pt;">mvn
+	spring-boot:run</span></span></span></span></p><p></p>
+<div class="separator" style="clear: both; text-align: center;"><a
+	href="https://1.bp.blogspot.com/-RZL_Mui5GjA/YLjvchJiX_I/AAAAAAAAAUA/ldAXohLd9p83U_ufVj1c3EP0NXmWxdQrQCLcBGAsYHQ/s1457/lance-service.png"
+	style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="454" data-original-width="1457"
+                                                      height="165"
+                                                      src="https://1.bp.blogspot.com/-RZL_Mui5GjA/YLjvchJiX_I/AAAAAAAAAUA/ldAXohLd9p83U_ufVj1c3EP0NXmWxdQrQCLcBGAsYHQ/w525-h165/lance-service.png"
+                                                      width="525"/></a></div><span style="color: #2b00fe;">À
+	noter&nbsp;:</span><p></p>
+<div style="text-align: justify;"><span style="color: #2b00fe;">Par défaut le «&nbsp;service registry&nbsp;» est un service
+	vital à l’application. C’est pourquoi, il est nativement prévu
+	pour être dupliqué. D’où un warning au lancement indiquant
+	l’absence de la réplication.</span></div><p></p>
+<p><b><br/></b></p><p><b>2. Créer des micro-service ( producer&nbsp;et consumer ) qui s'enregistrent</b></p><p>Pour les
+	besoins du tutoriel, nous créons deux micro-services. Le premier micro-service "consumer" qui appellera le service
+	producer qui exposera une API-REST qui retourne une chaîne de caractère.&nbsp;</p><p>Maintenant que le service
+	d'enregistrement est lancé, nous allons créer un client qui va :</p>
+<div>
+	<ul>
+		<li>S'enregistrer auprès du service</li>
+		<li>Interroger le registre pour trouver son propre hôte.</li>
+	</ul>
+</div>
+<div><p>Nous indiquons ici le détail du service producteur. Le travail est le même avec le service consommateur que nous
+	utiliserons par la suite.</p>
+	<p>Pour être en situation réelle d'utilisation, dans un troisième temps nous développerons un autre service qui
+		appellera se service via la gateway.</p>
+	<p>Configuration de Spring initaliser&nbsp;:&nbsp;<a href="https://start.spring.io/"><span
+		style="text-decoration-line: none;">https://start.spring.io/</span></a>&nbsp;avec la dépendance "Spring
+		Discovery Client" et Spring Web.</p></div>
+<div class="separator" style="clear: both; text-align: center;"><a
+	href="https://1.bp.blogspot.com/-sr6GBWOdraI/YLnQ7WYcuXI/AAAAAAAAAUc/FUqVD_flXlMu6HNQAePyn5CPwZbv1v9RQCLcBGAsYHQ/s566/dependance2.png"
+	style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="240" data-original-width="566"
+                                                      height="186"
+                                                      src="https://1.bp.blogspot.com/-sr6GBWOdraI/YLnQ7WYcuXI/AAAAAAAAAUc/FUqVD_flXlMu6HNQAePyn5CPwZbv1v9RQCLcBGAsYHQ/w437-h186/dependance2.png"
+                                                      width="437"/></a></div><br/>
+<div class="separator" style="clear: both; text-align: left;"><br/>
+</div>Nous utilisons&nbsp; "&nbsp;DiscoveryClient" pour:
+<div>
+	<div>
+		<ul>
+			<li>S'enregistrer auprès du registre</li>
+			<li>Adresse IP</li>
+			<li>Port d'écoute</li>
+		</ul>
+	</div>
+	<div><p>Il existe d'autre implémentation que NetflixEureka :</p></div>
+</div>
+<div>
+	<div>
+		<ul>
+			<li>Consul de Hashicorp</li>
+			<li>Apache Zookeeper</li>
+		</ul>
+	</div>
+	<div>
+		<p>
+			<script src="https://gist.github.com/jeromerocher/c48575d2aa7782b40bd03f3ebac54128.js"></script>
+		</p>
+		<p><u><br/></u></p>
+		<div><u>Configuration du service client producteur («&nbsp;application.properties&nbsp;») :</u></div>
+		<div>
+			<table cellpadding="0" cellspacing="0" style="width: 665.139px;">
+				<colgroup>
+					<col width="128*"></col>
+					<col width="128*"></col>
+				</colgroup>
+				<tbody>
+				<tr valign="top">
+					<td style="border: none; padding: 0cm;" width="50%"><p
+						style="font-variant-east-asian: normal; font-variant-numeric: normal;"><span
+						style="color: black;"><span style="font-family: Courier New, monospace;"><span
+						style="font-size: 9pt;"><span
+						style="color: #1d1c1d;">server.port=8082<span>&nbsp;&nbsp; &nbsp;</span></span></span></span></span>
+					</p></td>
+					<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+					                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+						<span style="color: black;"><span style="font-family: Times New Roman;"><span
+							style="font-size: 10pt;">Port d'écoute de l'application.</span></span></span></p></td>
+				</tr>
+				<tr valign="top">
+					<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+					                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+						<span style="color: black;"><span style="font-family: Courier New, monospace;"><span
+							style="font-size: 9pt;">spring.cloud.discovery.enabled=true</span></span></span></p></td>
+					<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+					                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+						<span style="color: black;"><span style="font-family: Times New Roman;"><span
+							style="font-size: 10pt;">Va automatiquement publier sa référence. Si l'on veut tester le micro-service seul (en développement par exemple), il suffit de le positionner à false.&nbsp;</span></span></span>
+					</p></td>
+				</tr>
+				<tr valign="top">
+					<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+					                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+						<span style="color: black;"><span style="font-family: Courier New, monospace;"><span
+							style="font-size: 9pt;">spring.application.name=client-test</span></span></span></p></td>
+					<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+					                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+						<span style="color: black;"><span style="font-family: Times New Roman;"><span
+							style="font-size: 10pt;">Nom du micro service.</span></span></span></p></td>
+				</tr>
+				<tr valign="top">
+					<td style="border: none; padding: 0cm;" width="50%"><p align="left"
+					                                                       style="font-variant-east-asian: normal; font-variant-numeric: normal;">
+						<br/></p></td>
+					<td style="border: none; padding: 0cm;" width="50%"><br/></td>
+				</tr>
+				</tbody>
+			</table>
+			<br/></div>
+		<p><i>Le micro-service consumer aura le port 8081.</i></p>
+		<p><u>Lancement du service client producteur (après le service d'enregistrement)</u></p>
+		<p><span style="font-family: Courier New,serif;">mvn clean install</span></p>
+		<p></p>
+		<p><span style="font-family:Courier New, monospace; font-size: 12pt;">mvn spring-boot:run</span>
+		</p>
+		<p></p>
+		<div class="separator" style="clear: both; text-align: center;"><a
+			href="https://1.bp.blogspot.com/-MPiTwxbYQ9M/YL3IAmSWOxI/AAAAAAAAAUk/AC_jRomRxrsE6VRkcEFMbZQoLoz4OZtUQCLcBGAsYHQ/s1296/11.png"
+			style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="373"
+		                                                      data-original-width="1296" height="131"
+		                                                      src="https://1.bp.blogspot.com/-MPiTwxbYQ9M/YL3IAmSWOxI/AAAAAAAAAUk/AC_jRomRxrsE6VRkcEFMbZQoLoz4OZtUQCLcBGAsYHQ/w456-h131/11.png"
+		                                                      width="456"/></a></div>
+		<br/><u><br/></u>
+		<p></p>
+		<p><u>Visualiser le statut du service producteur auprès du service d'enregistrement</u></p>
+		<p>Nous ouvrons le navigateur sur&nbsp;<a href="http://localhost:8761/">http://localhost:8761/</a>, pour
+			visualiser le statut d'enregistrement sur le tableau de bord Eureka.&nbsp;</p>
+		<p><br/></p>
+		<div class="separator" style="clear: both; text-align: center;"><a
+			href="https://1.bp.blogspot.com/-pU-vJJOlQNA/YL3Ix9VM9fI/AAAAAAAAAUs/9MJf6XfiPpkU0wdGoOMLVgoGJn7snHyPgCLcBGAsYHQ/s1281/22.png"
+			style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="757"
+		                                                      data-original-width="1281" height="279"
+		                                                      src="https://1.bp.blogspot.com/-pU-vJJOlQNA/YL3Ix9VM9fI/AAAAAAAAAUs/9MJf6XfiPpkU0wdGoOMLVgoGJn7snHyPgCLcBGAsYHQ/w472-h279/22.png"
+		                                                      width="472"/></a></div>
+		<br/></div>
+	<div>
+		<div class="separator" style="clear: both; text-align: right;"><br/></div>
+		<div class="separator" style="clear: both; text-align: left;">Nous retrouvons les liste des instances des
+			micro-services qui sont lancés. Le nom du service défini dans "spring.application.name" qui identifie le
+			service.
+		</div>
+		<p><u>Configuration de la Gateway&nbsp;</u></p>
+		<p>Il est possible de configurer en définissant des routes statiques ou dynamique (dans le code). Nous ne savons
+			pas ou est le service, donc nous utilisons "lb" pour "loadbalancer".</p>
+		<p><br/></p>
+		<p><b>3. Echanger des informations entre deux micro-service&nbsp;&nbsp;</b></p>
+		<p>Pour cela nous implémentons Feign dans le service qui fait l'appel. Feign est un client rest dynamique. <b>Feign
+			va localiser le service client auprès d'Eureka</b>.&nbsp;Cette interface sera automatiquement implémentée au
+			moment de l'exécution.</p>
+		<p>Pour utiliser Feign on ajoute la dépendance :</p>
+		<p><span style="white-space: pre;"></span></p>
+		<p><span style="white-space: pre;">		</span>&lt;dependency&gt;<br/><span
+			style="white-space: pre;">			</span>&lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;<br/><span
+			style="white-space: pre;">			</span>&lt;artifactId&gt;spring-cloud-starter-feign&lt;/artifactId&gt;<br/><span
+			style="white-space: pre;">		</span>&lt;/dependency&gt;</p>
+		<p></p>
+		<p>Active Feign dans le micro-service en ajoutant l'annotation "<span
+			style="background-color: #2b2b2b; color: #bbb529; font-family:JetBrains Mono, monospace;">@EnableFeignClients</span>".
+			Puis je créer un client Feign comme ci dessous :</p>
+		<p>zzzzzzzzzzzzzzzzzzzz</p>
+		<p><br/></p>
+		<p>Cinématique :</p>
+		<div class="separator" style="clear: both; text-align: center;"><a
+			href="https://1.bp.blogspot.com/-ToxhjKOAM3Y/YMMMEhOp-BI/AAAAAAAAAU0/gmAcws1rJYMIzYO_O_NWLxblzsd8IrsowCLcBGAsYHQ/s1055/cin%25C3%25A9matique.png"
+			imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" data-original-height="289"
+		                                                                      data-original-width="1055" height="168"
+		                                                                      src="https://1.bp.blogspot.com/-ToxhjKOAM3Y/YMMMEhOp-BI/AAAAAAAAAU0/gmAcws1rJYMIzYO_O_NWLxblzsd8IrsowCLcBGAsYHQ/w611-h168/cin%25C3%25A9matique.png"
+		                                                                      width="611"/></a></div>
+		<br/>
+		<p><br/></p>
+		<p><a href="https://spring.io/guides/gs/service-registration-and-discovery/">https://spring.io/guides/gs/service-registration-and-discovery/</a>
+		</p></div>
+	<p style="line-height: 100%; margin-bottom: 0cm;">
+		<a href="https://www.baeldung.com/spring-cloud-netflix-eureka">https://www.baeldung.com/spring-cloud-netflix-eureka</a>
+	</p>
+	<p style="line-height: 100%; margin-bottom: 0cm;"><br/></p>
+	<p style="line-height: 100%; margin-bottom: 0cm;">A VOIR :</p>
+	<p style="line-height: 100%; margin-bottom: 0cm;"></p>
+	<ul style="text-align: left;">
+		<li>Hystrix : intercepte les requêtes en erreur pour retourner une réponse standard.</li>
+		<li>1:00:52</li>
+		<li>25:24</li>
+	</ul>
+	<p></p>
+	<div><br/></div>
+</div>
