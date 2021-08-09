@@ -1,0 +1,3 @@
+[submodule "sources/sources/my-config"]
+	path = sources/sources/my-config
+	url = https://github.com/jeromerocher/micro-services.git
