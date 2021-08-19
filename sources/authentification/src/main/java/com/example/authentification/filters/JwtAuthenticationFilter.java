@@ -24,7 +24,6 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 	
 	
 	public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
-		super();
 		this.authenticationManager = authenticationManager;
 	}
 
@@ -36,7 +35,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 		String username = request.getParameter("username");
 		String password = request.getParameter("password");
 		UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(username, password);
-		
+				
 		// C'est cette méthode qui fait appel à la méthode loadUserByUsername qui va vérifier le login et mot de passe en base.
 		// En cas de succès, la méthode ci dessous successfulAuthentication est appelées
 		return authenticationManager.authenticate(usernamePasswordAuthenticationToken);
@@ -58,7 +57,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 				        .withSubject(user.getUsername())
 				        .withExpiresAt(new Date(System.currentTimeMillis()+5 * 60 *1000)) // 5 minutes
 				        .withIssuer(request.getRequestURL().toString()) // Nom de l'application qui a générée le token
-				        .withClaim("fonction", 
+				        .withClaim("roles", 
 				                	user.getAuthorities().stream()
 				                		                 .map(authorities -> authorities.getAuthority())
 				                		                 .collect(Collectors.toList()))
